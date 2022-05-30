@@ -1,0 +1,38 @@
+body {
+    background-color: #f8eefb;
+  }
+  h1 {
+    text-align: center;
+    color: rgb(212, 9, 9);
+  }
+  #page-wrapper {
+    width: 90%;
+    margin-left:5%;
+    padding: 2px 0px;
+    border:solid 1px;
+    background-color: #d0dad9;
+  }
+  img {
+    width:50%;
+    border-radius:50px;
+  }
+  p {
+    text-align: left;
+      word-spacing: 5px;
+      letter-spacing: 2px;
+      font-size: 18px;
+      line-height: 2;
+      font-family: cursive;
+  }
+  .info-paras {
+    width: 80%;
+    padding:5%;
+    border:solid 1px;
+    border-radius:5%;
+    margin-left: 5%;
+    background-color: #db9671;
+  }
+  .footer p{
+    text-align:right;
+    margin-right: 10%;
+  }
