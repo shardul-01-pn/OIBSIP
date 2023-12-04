@@ -1,33 +1,25 @@
-WITH employee_shifts AS (
-  SELECT
-    e.employee_id,
-    e.punch_in_time,
-    e.punch_out_time,
-    CASE
-      WHEN e.punch_in_time BETWEEN TO_DATE('08:00:00', 'HH24:MI:SS') AND TO_DATE('16:00:00', 'HH24:MI:SS') THEN 'Shift 1'
-      WHEN e.punch_in_time BETWEEN TO_DATE('16:00:00', 'HH24:MI:SS') AND TO_DATE('00:00:00', 'HH24:MI:SS') THEN 'Shift 2'
-      ELSE 'Shift 3'
-    END AS shift
-  FROM employee_punch_in_out e
-),
-shift_durations AS (
-  SELECT
-    employee_id,
-    shift,
-    ROUND(
-      TO_DATE(punch_out_time) - TO_DATE(punch_in_time),
-      'HH24:MI:SS'
-    ) AS duration
-  FROM employee_shifts es
-)
 SELECT
-  es.employee_id,
-  es.punch_in_time,
-  es.punch_out_time,
-  SUM(CASE WHEN sd.shift = 'Shift 1' THEN sd.duration ELSE 0 END) AS shift1_hours,
-  SUM(CASE WHEN sd.shift = 'Shift 2' THEN sd.duration ELSE 0 END) AS shift2_hours,
-  SUM(CASE WHEN sd.shift = 'Shift 3' THEN sd.duration ELSE 0 END) AS shift3_hours
-FROM employee_shifts es
-JOIN shift_durations sd ON es.employee_id = sd.employee_id
-GROUP BY es.employee_id, es.punch_in_time, es.punch_out_time
-ORDER BY es.punch_in_time;
+  emp_id,
+  TO_CHAR(punch_in, 'YYYY-MM-DD HH24:MI:SS') AS punch_in_time,
+  TO_CHAR(punch_out, 'YYYY-MM-DD HH24:MI:SS') AS punch_out_time,
+  
+  ROUND(
+    CASE
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') THEN (punch_out - punch_in) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (punch_out - punch_in) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') THEN (punch_out - TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS')) * 24
+      WHEN punch_in < TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out > TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') THEN (TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') - punch_in) * 24
+      WHEN punch_in < TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') THEN (TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') - TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS')) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out > TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_in <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 - punch_in) * 24
+    END,
+    2
+  ) AS hours_worked_shift1,
+  
+  ROUND(
+    CASE
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (punch_out - punch_in) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (punch_out - punch_in) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 AND punch_out <= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (punch_out - TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out > TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 - punch_in) * 24
+      WHEN punch_in < TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') AND punch_out > TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 THEN (TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 - TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 16:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1) * 24
+      WHEN punch_in >= TO_DATE(TO_CHAR(punch_in, 'YYYY-MM-DD') || ' 08:00:00', 'YYYY-MM-DD HH24:MI:SS') + 1 AND punch_out
